@@ -40,7 +40,7 @@ describe('Deck of cards', () => {
         })
         .returns('deck_id');
     });
-
+    
     it('Shuffle Deck', async () => {
       await p
         .spec()
@@ -48,6 +48,83 @@ describe('Deck of cards', () => {
         .expectStatus(StatusCodes.OK)
         .expectBodyContains('52')
         .expectJsonLike({ shuffled: true });
-    });
+    });     
+    
+    it('Deck with selected cards', async () => {
+      await p
+        .spec()
+        .post(`${baseUrl}/deck/new/shuffle/?cards=AS,2S,KS,AD,2D,KD,AC,2C,KC,AH,2H,KH`)        
+        .expectStatus(StatusCodes.OK)
+        .expectBodyContains('12')
+        .expectJsonLike({ shuffled: true });
+    });    
+    
+    // Falha ao criar pilha
+    it('Adding to Piles', async () => {
+      await p
+        .spec()
+        .post(`${baseUrl}/deck/${deckId}/pile/bombaNuclear/add/?cards=AS,2S`)        
+        .expectStatus(StatusCodes.OK)
+        .expectBodyContains('12')        
+        .expectJsonLike({ "piles": {
+          "discard": {
+              "remaining": 0
+          }
+      }});
+    });  
+    
+    // Esse aqui quebra pq a pilha não é criada no teste anterior
+    // se jogar no navegador com o nome da pilha e o deckId, funciona
+    it('Shuffle Piles', async () => {
+      await p
+        .spec()
+        .post(`${baseUrl}/deck/${deckId}/pile/bombaNuclear/shuffle/`)        
+        .expectStatus(StatusCodes.OK)
+        .expectBodyContains('12')        
+        .expectJsonLike({ "piles": {
+          "discard": {
+              "remaining": 2
+          }
+      }});
+    }); 
+    
+    // quebra pq não tem pilha criada. 
+    // se jogar no navegador com o nome da pilha e o deckId, funciona
+    it('Listing Cards in Piles', async () => {
+      await p
+        .spec()
+        .post(`${baseUrl}/deck/${deckId}/pile/bombaNuclear/list/`)        
+        .expectStatus(StatusCodes.OK)
+        .expectBodyContains('12')        
+        .expectJsonLike({ "piles": {
+          "bombaNuclear": {
+            "remaining": 0, 
+            "cards": []
+          }}});
+    }); 
+    
+    // Esse não especifica o motivo do erro
+    it('Listing Cards in Piles', async () => {
+      await p
+        .spec()
+        .post(`${baseUrl}/deck/${deckId}/pile/bombaNuclear/draw/random`)                
+        .expectJsonLike({ "error": "Not enough cards remaining to draw 1 additional"});
+    }); 
+    
+    it('Returning cards to the deck', async () => {
+      await p
+        .spec()
+        .post(`${baseUrl}/deck/${deckId}/return`)
+        .expectStatus(StatusCodes.OK)
+        .expectBodyContains('52');
+    }); 
+
+    it('Back of Card Image', async () => {
+      await p
+        .spec()
+        .get(`https://deckofcardsapi.com/static/img/back.png`)
+        .expectStatus(StatusCodes.OK)        
+    }); 
+
   });
 });
